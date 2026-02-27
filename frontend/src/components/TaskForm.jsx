@@ -1,147 +1,43 @@
 import { useState } from "react";
 
-const s = {
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: "14px",
-    padding: "24px",
-    marginBottom: "28px",
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-  },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    marginBottom: "20px",
-  },
-  headerIcon: {
-    width: "30px",
-    height: "30px",
-    borderRadius: "8px",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "14px",
-    color: "#fff",
-    flexShrink: 0,
-  },
-  headerText: {
-    fontSize: "15px",
-    fontWeight: "700",
-    color: "#0f172a",
-    letterSpacing: "-0.2px",
-  },
-  row: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "12px",
-    marginBottom: "12px",
-  },
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-  fieldFull: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-    marginBottom: "12px",
-  },
-  label: {
-    fontSize: "12px",
-    fontWeight: "600",
-    color: "#374151",
-    textTransform: "uppercase",
-    letterSpacing: "0.4px",
-  },
-  input: {
-    padding: "9px 12px",
-    borderRadius: "8px",
-    border: "1.5px solid #e2e8f0",
-    fontSize: "14px",
-    color: "#0f172a",
-    outline: "none",
-    backgroundColor: "#fafafa",
-    fontFamily: "inherit",
-  },
-  textarea: {
-    padding: "9px 12px",
-    borderRadius: "8px",
-    border: "1.5px solid #e2e8f0",
-    fontSize: "14px",
-    color: "#0f172a",
-    outline: "none",
-    backgroundColor: "#fafafa",
-    resize: "vertical",
-    fontFamily: "inherit",
-    minHeight: "72px",
-  },
-  select: {
-    padding: "9px 12px",
-    borderRadius: "8px",
-    border: "1.5px solid #e2e8f0",
-    fontSize: "14px",
-    color: "#0f172a",
-    outline: "none",
-    backgroundColor: "#fafafa",
-    cursor: "pointer",
-    fontFamily: "inherit",
-  },
-  footer: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    marginTop: "4px",
-  },
-  submitBtn: {
-    padding: "9px 20px",
-    borderRadius: "8px",
-    border: "none",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    color: "#fff",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    letterSpacing: "-0.1px",
-    flexShrink: 0,
-  },
-  errorText: {
-    fontSize: "13px",
-    color: "#dc2626",
-  },
-};
-
-const focusStyle = (e) => {
+const focus = (e) => {
   e.target.style.borderColor = "#6366f1";
-  e.target.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.1)";
+  e.target.style.boxShadow   = "0 0 0 3px rgba(99,102,241,0.1)";
   e.target.style.backgroundColor = "#fff";
 };
-const blurStyle = (e) => {
-  e.target.style.borderColor = "#e2e8f0";
-  e.target.style.boxShadow = "none";
+const blur = (e) => {
+  e.target.style.borderColor     = "#e2e8f0";
+  e.target.style.boxShadow       = "none";
   e.target.style.backgroundColor = "#fafafa";
 };
 
+const inputBase = {
+  padding: "9px 13px",
+  borderRadius: "9px",
+  border: "1.5px solid #e2e8f0",
+  fontSize: "14px",
+  color: "#0f172a",
+  outline: "none",
+  backgroundColor: "#fafafa",
+  fontFamily: "inherit",
+  width: "100%",
+  transition: "border-color 0.15s, box-shadow 0.15s",
+};
+
 export default function TaskForm({ onCreate }) {
-  const [title, setTitle] = useState("");
+  const [title,       setTitle]       = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("pending");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [status,      setStatus]      = useState("pending");
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim()) {
-      setError("Title is required.");
-      return;
-    }
+    if (!title.trim()) { setError("Title is required."); return; }
     setLoading(true);
     setError("");
     try {
-      await onCreate(title, description, status);
+      await onCreate(title.trim(), description.trim(), status);
       setTitle("");
       setDescription("");
       setStatus("pending");
@@ -153,66 +49,93 @@ export default function TaskForm({ onCreate }) {
   }
 
   return (
-    <div style={s.card}>
-      <div style={s.header}>
-        <div style={s.headerIcon}>+</div>
-        <span style={s.headerText}>New Task</span>
+    <form onSubmit={handleSubmit}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+        <div style={{
+          width: "28px", height: "28px", borderRadius: "7px",
+          background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "14px", color: "#fff", fontWeight: "700", flexShrink: 0,
+        }}>+</div>
+        <span style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", letterSpacing: "-0.3px" }}>
+          New Task
+        </span>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div style={s.row}>
-          <div style={s.field}>
-            <label style={s.label}>Title</label>
-            <input
-              type="text"
-              placeholder="Task title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              style={s.input}
-              onFocus={focusStyle}
-              onBlur={blurStyle}
-            />
-          </div>
-          <div style={s.field}>
-            <label style={s.label}>Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              style={s.select}
-              onFocus={focusStyle}
-              onBlur={blurStyle}
-            >
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={s.fieldFull}>
-          <label style={s.label}>Description</label>
-          <textarea
-            placeholder="Add details (optional)…"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            style={s.textarea}
-            onFocus={focusStyle}
-            onBlur={blurStyle}
+      {/* Row 1: Title + Status side by side */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: "12px", marginBottom: "12px" }}>
+        <div>
+          <label style={{ fontSize: "11.5px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "5px" }}>
+            Title <span style={{ color: "#ef4444" }}>*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Enter task title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            style={inputBase}
+            onFocus={focus}
+            onBlur={blur}
           />
         </div>
-
-        <div style={s.footer}>
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ ...s.submitBtn, opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer" }}
+        <div>
+          <label style={{ fontSize: "11.5px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "5px" }}>
+            Status
+          </label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            style={{ ...inputBase, cursor: "pointer" }}
+            onFocus={focus}
+            onBlur={blur}
           >
-            {loading ? "Adding…" : "Add Task"}
-          </button>
-          {error && <span style={s.errorText}>⚠ {error}</span>}
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
         </div>
-      </form>
-    </div>
+      </div>
+
+      {/* Row 2: Description */}
+      <div style={{ marginBottom: "16px" }}>
+        <label style={{ fontSize: "11.5px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "5px" }}>
+          Description <span style={{ color: "#94a3b8", fontWeight: "500", textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+        </label>
+        <textarea
+          placeholder="Enter task description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          style={{ ...inputBase, resize: "vertical", minHeight: "70px", lineHeight: "1.5" }}
+          onFocus={focus}
+          onBlur={blur}
+        />
+      </div>
+
+      {/* Submit */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            padding: "9px 24px",
+            borderRadius: "9px",
+            border: "none",
+            background: loading ? "#a5b4fc" : "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            color: "#fff",
+            fontSize: "14px",
+            fontWeight: "600",
+            cursor: loading ? "not-allowed" : "pointer",
+            letterSpacing: "-0.1px",
+            transition: "opacity 0.15s",
+          }}
+        >
+          {loading ? "Adding…" : "Add Task"}
+        </button>
+        {error && (
+          <span style={{ fontSize: "13px", color: "#dc2626", fontWeight: "500" }}>⚠ {error}</span>
+        )}
+      </div>
+    </form>
   );
 }
