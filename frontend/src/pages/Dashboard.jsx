@@ -4,40 +4,36 @@ import { getTasks, createTask } from "../api/api";
 import TaskCard from "../components/TaskCard";
 import TaskForm from "../components/TaskForm";
 
-const STAT_CONFIG = [
-  { key: "all",        label: "Total",       icon: "◈", color: "#6366f1", bg: "#eef2ff" },
-  { key: "pending",    label: "Pending",     icon: "○", color: "#d97706", bg: "#fef3c7" },
-  { key: "in_progress",label: "In Progress", icon: "◑", color: "#2563eb", bg: "#dbeafe" },
-  { key: "completed",  label: "Done",        icon: "●", color: "#059669", bg: "#d1fae5" },
+const FILTERS = [
+  { key: "all",         label: "All Tasks",    icon: "◈" },
+  { key: "pending",     label: "Pending",       icon: "○" },
+  { key: "in_progress", label: "In Progress",   icon: "◑" },
+  { key: "completed",   label: "Completed",     icon: "●" },
 ];
 
 export default function Dashboard() {
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [tasks,    setTasks]    = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState("");
+  const [filter,   setFilter]   = useState("all");
+  const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!localStorage.getItem("token")) {
-      navigate("/login");
-      return;
-    }
+    if (!localStorage.getItem("token")) { navigate("/login"); return; }
     fetchTasks();
   }, []);
 
   async function fetchTasks() {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       const res = await getTasks();
       setTasks(res.data?.data || []);
     } catch (err) {
       if (err.response?.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login");
+        localStorage.removeItem("token"); navigate("/login");
       } else {
-        setError("Failed to load tasks. Please refresh.");
+        setError("Failed to load tasks. Please try refreshing.");
       }
     } finally {
       setLoading(false);
@@ -46,14 +42,12 @@ export default function Dashboard() {
 
   async function handleCreate(title, description, status) {
     const res = await createTask(title, description, status);
-    const newTask = res.data?.data;
-    setTasks((prev) => [newTask, ...prev]);
+    setTasks((prev) => [res.data?.data, ...prev]);
+    setShowForm(false);
   }
 
-  function handleUpdated(id, newStatus) {
-    setTasks((prev) =>
-      prev.map((t) => (t._id === id ? { ...t, status: newStatus } : t))
-    );
+  function handleUpdated(id, updatedFields) {
+    setTasks((prev) => prev.map((t) => (t._id === id ? { ...t, ...updatedFields } : t)));
   }
 
   function handleDeleted(id) {
@@ -66,194 +60,360 @@ export default function Dashboard() {
   }
 
   const counts = {
-    all: tasks.length,
-    pending: tasks.filter((t) => t.status === "pending").length,
+    all:         tasks.length,
+    pending:     tasks.filter((t) => t.status === "pending").length,
     in_progress: tasks.filter((t) => t.status === "in_progress").length,
-    completed: tasks.filter((t) => t.status === "completed").length,
+    completed:   tasks.filter((t) => t.status === "completed").length,
   };
 
-  const visibleTasks = filter === "all" ? tasks : tasks.filter((t) => t.status === filter);
+  const completionPct = counts.all > 0 ? Math.round((counts.completed / counts.all) * 100) : 0;
+  const visibleTasks  = filter === "all" ? tasks : tasks.filter((t) => t.status === filter);
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f1f5f9" }}>
-      {/* Top nav */}
-      <header
-        style={{
+    <>
+      <style>{`
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.45} }
+        @keyframes fadeIn  { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+        .task-card-wrap { animation: fadeIn 0.2s ease; }
+        .filter-btn:hover { background: #fff !important; color: #0f172a !important; }
+        .sidebar-nav-btn:hover { background: #f1f5f9 !important; }
+        .logout-btn:hover { background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
+        .new-task-btn:hover { opacity: 0.88; }
+      `}</style>
+
+      <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f1f5f9" }}>
+
+        {/* ══════════ SIDEBAR ══════════ */}
+        <aside style={{
+          width: "260px",
+          flexShrink: 0,
           backgroundColor: "#fff",
-          borderBottom: "1px solid #e2e8f0",
-          padding: "0 24px",
-          height: "58px",
+          borderRight: "1px solid #e2e8f0",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          flexDirection: "column",
           position: "sticky",
           top: 0,
-          zIndex: 10,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "15px",
-              color: "#fff",
-            }}
-          >
-            ✓
+          height: "100vh",
+          overflowY: "auto",
+        }}>
+
+          {/* Logo */}
+          <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #f1f5f9" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{
+                width: "36px", height: "36px", borderRadius: "10px",
+                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "18px", color: "#fff", fontWeight: "800", flexShrink: 0,
+              }}>✓</div>
+              <div>
+                <div style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.4px" }}>TaskFlow</div>
+                <div style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "500" }}>Task Manager</div>
+              </div>
+            </div>
           </div>
-          <span style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a", letterSpacing: "-0.3px" }}>
-            TaskFlow
-          </span>
-        </div>
 
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: "7px 16px",
-            borderRadius: "7px",
-            border: "1.5px solid #e2e8f0",
-            backgroundColor: "#f8fafc",
-            fontSize: "13px",
-            fontWeight: "500",
-            cursor: "pointer",
-            color: "#374151",
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.borderColor = "#ef4444";
-            e.target.style.color = "#ef4444";
-            e.target.style.backgroundColor = "#fef2f2";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.borderColor = "#e2e8f0";
-            e.target.style.color = "#374151";
-            e.target.style.backgroundColor = "#f8fafc";
-          }}
-        >
-          Sign out
-        </button>
-      </header>
-
-      {/* Main content */}
-      <main style={{ maxWidth: "760px", margin: "0 auto", padding: "32px 20px" }}>
-
-        {/* Page title */}
-        <div style={{ marginBottom: "24px" }}>
-          <h1 style={{ fontSize: "26px", fontWeight: "700", color: "#0f172a", margin: "0 0 4px", letterSpacing: "-0.6px" }}>
-            My Tasks
-          </h1>
-          <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
-            {counts.all === 0
-              ? "No tasks yet — create your first one below."
-              : `${counts.completed} of ${counts.all} tasks completed.`}
-          </p>
-        </div>
-
-        {/* Stats row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "28px" }}>
-          {STAT_CONFIG.map((stat) => (
+          {/* New Task button */}
+          <div style={{ padding: "16px 16px 12px" }}>
             <button
-              key={stat.key}
-              onClick={() => setFilter(stat.key)}
+              className="new-task-btn"
+              onClick={() => setShowForm((v) => !v)}
               style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                padding: "14px 16px",
-                borderRadius: "12px",
-                border: filter === stat.key ? `2px solid ${stat.color}` : "2px solid transparent",
-                backgroundColor: filter === stat.key ? stat.bg : "#fff",
+                width: "100%",
+                padding: "10px 16px",
+                borderRadius: "10px",
+                border: "none",
+                background: showForm
+                  ? "linear-gradient(135deg, #ef4444, #f87171)"
+                  : "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                color: "#fff",
+                fontSize: "14px",
+                fontWeight: "600",
                 cursor: "pointer",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-                transition: "all 0.15s",
-                textAlign: "left",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                transition: "opacity 0.15s",
+                letterSpacing: "-0.1px",
               }}
             >
-              <span style={{ fontSize: "18px", marginBottom: "6px" }}>{stat.icon}</span>
-              <span style={{ fontSize: "22px", fontWeight: "700", color: filter === stat.key ? stat.color : "#0f172a", lineHeight: 1, marginBottom: "4px" }}>
-                {counts[stat.key]}
-              </span>
-              <span style={{ fontSize: "12px", fontWeight: "500", color: "#64748b" }}>
-                {stat.label}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Create task form */}
-        <TaskForm onCreate={handleCreate} />
-
-        {/* Filter label */}
-        {filter !== "all" && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-            <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              {STAT_CONFIG.find((s) => s.key === filter)?.label}
-            </span>
-            <button
-              onClick={() => setFilter("all")}
-              style={{ fontSize: "12px", color: "#6366f1", background: "none", border: "none", cursor: "pointer", fontWeight: "500" }}
-            >
-              Show all →
+              <span style={{ fontSize: "18px", lineHeight: 1 }}>{showForm ? "✕" : "+"}</span>
+              {showForm ? "Cancel" : "New Task"}
             </button>
           </div>
-        )}
 
-        {/* Task list */}
-        {loading && (
-          <div style={{ textAlign: "center", padding: "48px 0", color: "#94a3b8" }}>
-            <div style={{ fontSize: "28px", marginBottom: "10px" }}>⟳</div>
-            <p style={{ fontSize: "14px", margin: 0 }}>Loading tasks…</p>
-          </div>
-        )}
-
-        {!loading && error && (
-          <div style={{
-            backgroundColor: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: "10px",
-            padding: "16px",
-            textAlign: "center",
-            color: "#dc2626",
-            fontSize: "14px",
-          }}>
-            ⚠ {error}
-          </div>
-        )}
-
-        {!loading && !error && visibleTasks.length === 0 && (
-          <div style={{
-            textAlign: "center",
-            padding: "52px 0",
-            color: "#94a3b8",
-          }}>
-            <div style={{ fontSize: "36px", marginBottom: "12px" }}>
-              {filter === "completed" ? "🎉" : "📋"}
+          {/* Overview */}
+          <div style={{ padding: "4px 16px 12px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "8px" }}>
+              Overview
             </div>
-            <p style={{ fontSize: "15px", margin: "0 0 4px", color: "#64748b", fontWeight: "500" }}>
-              {filter === "all" ? "No tasks yet" : `No ${STAT_CONFIG.find((s) => s.key === filter)?.label.toLowerCase()} tasks`}
-            </p>
-            <p style={{ fontSize: "13px", margin: 0, color: "#94a3b8" }}>
-              {filter === "all" ? "Use the form above to add your first task." : ""}
-            </p>
-          </div>
-        )}
 
-        {!loading && !error && visibleTasks.map((task) => (
-          <TaskCard
-            key={task._id}
-            task={task}
-            onUpdated={handleUpdated}
-            onDeleted={handleDeleted}
-          />
-        ))}
-      </main>
-    </div>
+            {/* Overall progress */}
+            <div style={{
+              backgroundColor: "#f8fafc",
+              borderRadius: "12px",
+              padding: "14px",
+              marginBottom: "10px",
+              border: "1px solid #e2e8f0",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
+                <span style={{ fontSize: "12px", fontWeight: "600", color: "#64748b" }}>Overall Progress</span>
+                <span style={{ fontSize: "18px", fontWeight: "800", color: "#6366f1" }}>{completionPct}%</span>
+              </div>
+              <div style={{ height: "6px", backgroundColor: "#e2e8f0", borderRadius: "99px", overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", borderRadius: "99px",
+                  width: `${completionPct}%`,
+                  background: "linear-gradient(90deg, #6366f1, #10b981)",
+                  transition: "width 0.5s ease",
+                }} />
+              </div>
+              <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "6px" }}>
+                {counts.completed} of {counts.all} tasks done
+              </div>
+            </div>
+
+          </div>
+
+          {/* Nav filters */}
+          <div style={{ padding: "4px 16px 12px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "8px" }}>
+              Filter
+            </div>
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                className="sidebar-nav-btn"
+                onClick={() => setFilter(f.key)}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: filter === f.key ? "#eef2ff" : "transparent",
+                  color: filter === f.key ? "#6366f1" : "#64748b",
+                  fontSize: "13.5px",
+                  fontWeight: filter === f.key ? "600" : "500",
+                  cursor: "pointer",
+                  marginBottom: "2px",
+                  textAlign: "left",
+                  transition: "background 0.12s",
+                }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "13px" }}>{f.icon}</span>
+                  {f.label}
+                </span>
+                <span style={{
+                  fontSize: "11px", fontWeight: "700",
+                  backgroundColor: filter === f.key ? "#6366f1" : "#e2e8f0",
+                  color: filter === f.key ? "#fff" : "#64748b",
+                  borderRadius: "99px",
+                  padding: "1px 7px",
+                  minWidth: "22px",
+                  textAlign: "center",
+                }}>
+                  {counts[f.key]}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Spacer + logout */}
+          <div style={{ marginTop: "auto", padding: "16px" }}>
+            <button
+              className="logout-btn"
+              onClick={handleLogout}
+              style={{
+                width: "100%",
+                padding: "9px 14px",
+                borderRadius: "9px",
+                border: "1.5px solid #e2e8f0",
+                backgroundColor: "transparent",
+                color: "#64748b",
+                fontSize: "13.5px",
+                fontWeight: "500",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "7px",
+                transition: "all 0.15s",
+              }}
+            >
+              <span>↩</span> Sign out
+            </button>
+          </div>
+        </aside>
+
+        {/* ══════════ MAIN CONTENT ══════════ */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+
+          {/* Top bar */}
+          <header style={{
+            backgroundColor: "#fff",
+            borderBottom: "1px solid #e2e8f0",
+            padding: "0 32px",
+            height: "60px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            position: "sticky",
+            top: 0,
+            zIndex: 20,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: "18px", fontWeight: "700", color: "#0f172a", letterSpacing: "-0.4px" }}>
+                {FILTERS.find((f) => f.key === filter)?.label}
+              </h1>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <span style={{ fontSize: "13px", color: "#94a3b8" }}>
+                {visibleTasks.length} task{visibleTasks.length !== 1 ? "s" : ""}
+              </span>
+              <button
+                onClick={() => setShowForm((v) => !v)}
+                style={{
+                  padding: "7px 18px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: showForm ? "#f1f5f9" : "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  color: showForm ? "#64748b" : "#fff",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span style={{ fontSize: "15px", lineHeight: 1 }}>{showForm ? "✕" : "+"}</span>
+                {showForm ? "Cancel" : "New Task"}
+              </button>
+            </div>
+          </header>
+
+          {/* Scrollable content */}
+          <main style={{ flex: 1, padding: "28px 32px", overflowY: "auto" }}>
+
+            {/* New task form */}
+            {showForm && (
+              <div style={{
+                backgroundColor: "#fff",
+                border: "1.5px solid #e0e7ff",
+                borderRadius: "16px",
+                padding: "24px 28px",
+                marginBottom: "24px",
+                boxShadow: "0 4px 20px rgba(99,102,241,0.1)",
+                animation: "fadeIn 0.2s ease",
+              }}>
+                <TaskForm onCreate={handleCreate} />
+              </div>
+            )}
+
+            {/* Loading skeletons */}
+            {loading && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} style={{
+                    height: "96px",
+                    borderRadius: "14px",
+                    backgroundColor: "#e2e8f0",
+                    animation: "shimmer 1.4s ease-in-out infinite",
+                  }} />
+                ))}
+              </div>
+            )}
+
+            {/* Error */}
+            {!loading && error && (
+              <div style={{
+                backgroundColor: "#fef2f2",
+                border: "1px solid #fecaca",
+                borderRadius: "14px",
+                padding: "24px",
+                textAlign: "center",
+                color: "#dc2626",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}>
+                ⚠ {error}
+                <button
+                  onClick={fetchTasks}
+                  style={{
+                    display: "block", margin: "12px auto 0",
+                    padding: "6px 16px", borderRadius: "7px",
+                    border: "1.5px solid #fca5a5", backgroundColor: "#fff",
+                    color: "#dc2626", fontSize: "13px", fontWeight: "600", cursor: "pointer",
+                  }}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!loading && !error && visibleTasks.length === 0 && (
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "80px 24px",
+                backgroundColor: "#fff",
+                borderRadius: "16px",
+                border: "1.5px dashed #e2e8f0",
+              }}>
+                <div style={{ fontSize: "48px", marginBottom: "16px" }}>
+                  {filter === "completed" ? "🎉" : filter === "pending" ? "📌" : filter === "in_progress" ? "⚡" : "📋"}
+                </div>
+                <p style={{ fontSize: "17px", fontWeight: "700", color: "#0f172a", margin: "0 0 8px", letterSpacing: "-0.3px" }}>
+                  {filter === "all" ? "No tasks yet" : `No ${FILTERS.find((f) => f.key === filter)?.label.toLowerCase()} tasks`}
+                </p>
+                <p style={{ fontSize: "14px", color: "#94a3b8", margin: "0 0 20px", textAlign: "center", maxWidth: "280px" }}>
+                  {filter === "all"
+                    ? "Create your first task using the New Task button."
+                    : "Tasks will appear here once you assign them this status."}
+                </p>
+                {filter === "all" && (
+                  <button
+                    onClick={() => setShowForm(true)}
+                    style={{
+                      padding: "9px 22px", borderRadius: "9px", border: "none",
+                      background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                      color: "#fff", fontSize: "14px", fontWeight: "600", cursor: "pointer",
+                    }}
+                  >
+                    + Create first task
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Task list */}
+            {!loading && !error && visibleTasks.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {visibleTasks.map((task) => (
+                  <div key={task._id} className="task-card-wrap">
+                    <TaskCard
+                      task={task}
+                      onUpdated={handleUpdated}
+                      onDeleted={handleDeleted}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
+    </>
   );
 }
