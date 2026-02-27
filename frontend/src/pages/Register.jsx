@@ -136,7 +136,7 @@ export default function Register() {
 
   return (
     <div style={s.page}>
-      <div style={s.card}>
+      <div style={s.card} className="auth-card">
         <div style={s.brand}>
           <div style={s.logo}>✓</div>
           <span style={s.brandName}>TaskFlow</span>

@@ -73,3 +73,94 @@ button {
   font-family: inherit;
   cursor: pointer;
 }
+
+/* ── Animations ── */
+@keyframes shimmer  { 0%,100%{opacity:1} 50%{opacity:0.45} }
+@keyframes fadeIn   { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideIn  { from{transform:translateX(-100%)} to{transform:translateX(0)} }
+
+.task-card-wrap { animation: fadeIn 0.2s ease; }
+
+/* ── Sidebar ── */
+.dash-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background-color: #fff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  transition: transform 0.25s ease;
+  z-index: 30;
+}
+.dash-overlay {
+  display: none;
+}
+
+/* ── Header / Main paddings ── */
+.dash-header   { padding: 0 32px; }
+.dash-content  { padding: 28px 32px; }
+
+/* ── Responsive grids ── */
+.taskform-row  { display: grid; grid-template-columns: 1fr 180px; gap: 12px; margin-bottom: 12px; }
+.taskedit-row  { display: grid; grid-template-columns: 1fr 160px; gap: 10px; margin-bottom: 10px; }
+
+/* ── Hover helpers ── */
+.sidebar-nav-btn:hover { background: #f1f5f9 !important; }
+.logout-btn:hover      { background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
+.new-task-btn:hover    { opacity: 0.88; }
+
+/* ════════════════════════════
+   TABLET  ≤ 1024px
+════════════════════════════ */
+@media (max-width: 1024px) {
+  .dash-sidebar  { width: 220px; }
+  .dash-header   { padding: 0 20px; }
+  .dash-content  { padding: 20px; }
+}
+
+/* ════════════════════════════
+   MOBILE  ≤ 768px
+════════════════════════════ */
+@media (max-width: 768px) {
+  /* sidebar becomes a fixed overlay drawer */
+  .dash-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 260px;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+    z-index: 50;
+  }
+  .dash-sidebar.open {
+    transform: translateX(0);
+    animation: slideIn 0.25s ease;
+  }
+  .dash-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 40;
+  }
+
+  /* header + content spacing */
+  .dash-header          { padding: 0 14px; }
+  .dash-content         { padding: 14px; }
+  .header-task-count    { display: none !important; }
+
+  /* form grids collapse to 1 col */
+  .taskform-row  { grid-template-columns: 1fr !important; }
+  .taskedit-row  { grid-template-columns: 1fr !important; }
+
+  /* auth pages */
+  .auth-card {
+    padding: 28px 20px !important;
+    border-radius: 16px !important;
+  }
+}

@@ -287,7 +287,7 @@ export default function TaskCard({ task, onUpdated, onDeleted }) {
           </div>
 
           {/* Title + Status row */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 160px", gap: "10px", marginBottom: "10px" }}>
+          <div className="taskedit-row">
             <div>
               <label style={{ fontSize: "11px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "4px" }}>
                 Title <span style={{ color: "#ef4444" }}>*</span>

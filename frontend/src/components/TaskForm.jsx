@@ -63,7 +63,7 @@ export default function TaskForm({ onCreate }) {
       </div>
 
       {/* Row 1: Title + Status side by side */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: "12px", marginBottom: "12px" }}>
+      <div className="taskform-row">
         <div>
           <label style={{ fontSize: "11.5px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "5px" }}>
             Title <span style={{ color: "#ef4444" }}>*</span>
